@@ -40,8 +40,11 @@ library(tidyverse) # for data wrangling
 
 
 # DAG practice
+![example DAG](example_DAG.jpg)
 
-6M1.  Modify the DAG on page 186 to include the variable V, an unobserved cause of C and Y: C ← V → Y. Reanalyze the DAG. How many paths connect X to Y? Which must be closed? Which variables should you condition on now?
+Directed Acyclic Graphs (DAGs) represent our understanding of causal influences in a system, with arrows connecting causes to effects. Consider the DAG above and modify it to include the variable V, an unobserved cause of C and Y: C ← V → Y. Reanalyze the DAG. How many paths connect X to Y? Which must be closed? Which variables should you condition on now?
+
+identify the fundamental parts
 
 -----------
 
