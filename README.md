@@ -16,13 +16,9 @@ You will submit one output for this activity:
 
 1.  A **PDF** of a rendered Quarto document with all of your R code.
     Please create a new Quarto document (e.g. don’t use this
-    `README.qmd`), include all of the code that appears in this
-    document, in addition to adding your own code and **answers to all
-    of the questions** in the “Q#” sections. Submit this through
-    Gradescope.
-
-*If you have trouble submitting as a PDF, please ask Calvin or Malin for
-help. If we still can’t solve it, you can submit the .qmd file instead.*
+    `README.qmd`) and include all of the code that appears in this
+    document, your own code, and **answers to all of the questions** in
+    the “Q#” sections. Submit this PDF through Gradescope.
 
 A reminder: **Please label the code** in your final submission in two
 ways:
@@ -57,26 +53,56 @@ Consider the DAG above.
 Now recreate the DAG above on [dagitty.net](https://dagitty.net). Leave
 the window open, as we’ll be using it more.
 
-### Q1.1
+### Q1.1 Make a DAG
 
 Please paste either your DAG image from the website or the DAG model
 code here.
 
-| There are four fundamental relations in a DAG: the fork, the pipe, the collider, and the descendent. ![elemental confounds](elemental_confounds.jpg) |
-|:-----------------------------------------------------------------------------------------------------------------------------------------------------|
-| \### Q1.3 Which colliders do you see? Please write them out in a Quarto list in the form L → M ← N. Hint: there is more than one!                    |
+------------------------------------------------------------------------
 
-### Q1.4
+There are four fundamental relations in a DAG: the fork, the pipe, the
+collider, and the descendent. This image shows them:
 
-Now modify the DAG (should still be on dagitty.net) to include the
-variable V, an unobserved cause of C and Y: C ← V → Y. Please paste
+![elemental confounds](elemental_confounds.jpg)
+
+### Q1.2 Identify forks
+
+Which forks do you see in the DAG you made on dagitty.net? Please write
+them out in a Quarto list (look up how to write a list if you don’t
+remember!) in the form L ← M → N.
+
+------------------------------------------------------------------------
+
+### Q1.3 Identify colliders
+
+Which colliders do you see? Please write them out in a Quarto list in
+the form L → M ← N. Hint: there is more than one!
+
+------------------------------------------------------------------------
+
+### Q1.4 Modify the DAG
+
+Now modify the DAG (it should still be open on dagitty.net) to include
+the variable V, an unobserved cause of C and Y: C ← V → Y. Please paste
 either your DAG image from the website or the DAG model code here.
 
-| \### Q1.5 Reanalyze this new DAG. How many paths connect X to Y? Please list them in a Quarto list here: |
-|:---------------------------------------------------------------------------------------------------------|
-| \### Q1.6 Which paths must be closed to estimate the direct effect of X on Y?                            |
+------------------------------------------------------------------------
 
-### Q1.7
+### Q1.5 Identify paths
+
+Reanalyze this new DAG. How many paths connect X to Y? Please list them
+in a Quarto list here:
+
+------------------------------------------------------------------------
+
+### Q1.6 Identify open backdoor paths
+
+Which paths must be closed to estimate the direct effect of X on Y? List
+the paths
+
+------------------------------------------------------------------------
+
+### Q1.7 Identify variables to close the backdoor(s)
 
 Given what you just wrote about paths to close, which variables should
 you condition on to estimate the direct effect of X on Y in your new
@@ -88,9 +114,11 @@ DAG?
 
 # 2. Foxes: Regression practice informed by DAGs
 
+![urban fox, pestuk.com](urbanfox.jpg)
+
 For this section, we are going to implement what we learned about DAGs
-into an example about foxes from the `rethinking` package. Let’s load in
-the data:
+into an example about urban fox territories from the `rethinking`
+package. Let’s load in the data:
 
 ``` r
 # Load in the fox data
@@ -117,39 +145,38 @@ gangs. `Group size` varies from 2 to 8 individuals. Each group maintains
 its own urban territory. Some territories are larger than others. The
 `area` variable encodes this information. Some territories also have
 more `avgfood` than others. We want to model the `weight` of each fox
-(in kg). For the problems below, assume the following DAG:”
+\[in kg\].” For the questions below, we will assume the following DAG is
+appropriate for this system:
 
 ![fox DAG](foxDAG.jpg)
 
 ------------------------------------------------------------------------
 
-### Q2.1 Identify the “elemental confounds” in the fox DAG
-
-Which of the confounds below (Fork, Pipe, Collider, and Descendant) do
-you see in the Fox DAG? List the names of the confounds you see AND the
-particular paths (e.g. “Pipe1: X → Z → Y, Pipe2: X → Z → C and Fork1: X
-← Z → Y”)
-
-*Answer:* Pipe 1: area → avgfood → weight Pipe 2: area → avgfood →
-groupsize → weight Fork 1: weight ← avgfood → groupsize Collider 1:
-avgfood → weight ← groupsize
-
 ![elemental confounds](elemental_confounds.jpg)
+
+### Q2.1 Identify the fundamental relations in the fox DAG
+
+Which of the first three fundamental relations above (Fork, Pipe, and
+Collider) do you see in the Fox DAG? List the names of the relations you
+see AND the particular paths (e.g. “Pipe1: X-\>Z-\>Y, Pipe2: X-\>Z-\>C
+and Fork1: X\<-Z-\>Y”)
+
+*Answer:*. Pipe 1: area -\> avgfood -\> weight. Pipe 2: area -\> avgfood
+-\> groupsize -\> weight. Fork 1: weight \<- avgfood -\> groupsize.  
+Collider 1: avgfood -\> weight \<- groupsize. *End answer:*
 
 ------------------------------------------------------------------------
 
-### Total causal influence of area on weight
+## Total causal influence of area on weight
 
 In this first part we are going to infer the total causal influence of
 area on weight. Would increasing the area available to each fox make it
 heavier (healthier)?
 
-- First we will standardize the variables.
-- Second we will use prior predictive simulation to show that your
-  model’s prior predictions stay within the possible outcome range.
-- Third we will run the models
-
-#### Standardize
+- First, we will standardize the variables.
+- Second, we will use prior predictive simulation to check that our
+  model’s prior predictions stay within a reasonable outcome range.
+- Third, we will run and interpret the models.
 
 Standardize weight to mean zero and standard deviation of 1
 
@@ -160,8 +187,8 @@ fox_dat <- foxes %>%
   mutate(across(everything(), standardize))
 ```
 
-Simulate from some priors for a linear regression with intercept alpha
-and slope beta: alpha \~ Gaussian(0, 0.2), beta \~ Gaussian(0, 2)
+Simulate from some priors for a linear regression with intercept *alpha*
+and slope *beta*: *alpha* \~ Gaussian(0, 0.2), *beta* \~ Gaussian(0, 2)
 
 ``` r
 n <- 1000
@@ -184,14 +211,29 @@ ggplot(priorsims, aes(x = area, y = weight, group = group)) +
 ![](README_files/figure-commonmark/unnamed-chunk-6-1.png)
 
 It’s pretty hard to understand what a “reasonable” fox weight is when it
-is in standardized units.
+is in standardized units. Let’s logic our way through this slowly.
 
-| \### Q2.A What to you seems like a reasonable minimum weight for a fox, in kg? |
-|:-------------------------------------------------------------------------------|
-| \### Q2.B What to you seems like a reasonable minimum weight for a fox, in kg? |
-| *Answer* Something in 0 to 3 kg makes sense. No need to be too strict.         |
+------------------------------------------------------------------------
 
-### Q2.C
+### Q2.2 Minimum fox weight
+
+What to you seems like a reasonable minimum weight for a fox, in kg?
+
+*Answer*. *Something in 7 to 15 kg makes sense. No need to be too
+strict.*
+
+------------------------------------------------------------------------
+
+### Q2.3 Maximum fox weight
+
+What to you seems like a reasonable minimum weight for a fox, in kg?
+
+*Answer*. *Something in 0 to 3 kg makes sense. No need to be too
+strict.*
+
+------------------------------------------------------------------------
+
+### Q2.4 Modify simulation plot
 
 Remake your prior predictive simulation plot and add two horizontal
 lines, one each for the minimum and maximum weights that you just
@@ -217,24 +259,39 @@ ggplot(priorsims, aes(x = area, y = weight, group = group)) +
 
 ![](README_files/figure-commonmark/unnamed-chunk-7-1.png)
 
+*End answer*
+
 ------------------------------------------------------------------------
 
-### Q2.D
+### Q2.5 Evaluate prior predictive simulation
 
 Do your priors seem reasonable? You haven’t seen any data yet, though
 you have marked out the minimum and maximum weights you expect foxes to
 be. Do your priors greatly exceed those values? Please explain your
 thinking.
 
-*Answer* The priors do not seem reasonable. They imply negative weights
-for foxes in large or small areas.
+*Answer*. *The priors do not seem reasonable. They imply negative
+weights for foxes in large or small areas.*
 
-|                                                                                                                                                                                                                                                                                                                        |
-|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| \### Q2.E Remake and plot a set of prior simulations that use priors you think are reasonable (adjusting the code from above would work well for this). Be sure to include the minimum and maximum fox weights that you expect. You can iterate on this a few times until you arrive at priors that make sense to you. |
-| *Answer* They should have code and a plot with few or no lines exceeding their min and max lines. Something like alpha \~ Gaussian(0, 0.2), beta \~ Gaussian(0, 0.5) would make sense, but we can accept a wide range here.                                                                                            |
+------------------------------------------------------------------------
 
-Run a model predicting average food as a function of area
+### Q2.6 Refine priors
+
+Remake and plot a set of prior simulations that use priors you think are
+reasonable (adjusting the code from above would work well for this). Be
+sure to include the minimum and maximum fox weights that you expect. You
+can iterate on this a few times (simulate, plot, adjust, etc.) until you
+arrive at priors that make sense to you.
+
+*Answer*. *They should have code and a plot with few or no lines
+exceeding their min and max lines. Something like alpha \~ Gaussian(0,
+0.2), beta \~ Gaussian(0, 0.5) would make sense, but we can accept a
+wide range here.*
+
+------------------------------------------------------------------------
+
+Run a model predicting average food as a function of area. Modify the
+code for the priors below to match the priors you just chose.
 
 ``` r
 food_on_area <- brm(avgfood ~ 1 + area, 
@@ -242,13 +299,13 @@ food_on_area <- brm(avgfood ~ 1 + area,
                     family = gaussian,
                     # Here we set the priors that we investigated earlier
                     prior = c(prior(normal(0, 0.2), class = Intercept),
-                              prior(normal(0, 0.5), class = b,),
+                              prior(normal(0, 2), class = b,),
                               prior(exponential(1), class = sigma)),
                     iter = 4000, warmup = 2000, chains = 4, cores = 4, seed = 1234,
                     file = "output/food_on_area")
 ```
 
-Now let’s check out the summary
+Check out the summary:
 
 ``` r
 summary(food_on_area)
@@ -274,29 +331,28 @@ summary(food_on_area)
     and Tail_ESS are effective sample size measures, and Rhat is the potential
     scale reduction factor on split chains (at convergence, Rhat = 1).
 
-We see a fairly strong effect of area on the average amount of food;
-because we standardized each variable by standard deviations, our units
+We see a fairly strong effect of area on the average amount of food.
+Because we standardized each variable by standard deviations, our units
 are now in “standard deviations”. (*We can backtransform these value to
 translate this back to the normal units! We won’t do that here, as we’ll
 get a lot more practice with that when we get to generalized linear
 models, but just know that if you are annoyed by the unitless values,
 there’s a way out!*)
 
-We find that for an increase of 1 standard deviation in area we would
-expect to see a .88 standard deviation increase in food. The credible
-interval for area is 0.79 to 0.96, which does not include zero.
-Logically this makes sense, as a greater area means there are would be
-more prey available.
+We find that for an increase of 1 standard deviation in area, we expect
+to see a 0.88 standard deviation increase in food. The 95% compatibility
+interval for the area parameter is 0.79 to 0.96, which does not include
+zero. Logically this makes sense, as a greater area would have more prey
+available.
 
 ------------------------------------------------------------------------
 
-### Q2.2a Run a model to look at the impact of food on fox weight
+### Q2.7 Run a model for the impact of food on fox weight
 
-Now infer the causal impact of adding food to a territory. Run a model
-with `weight` as a function of `avgfood`. Do you think this make foxes
-heavier? Interpret your results and whether or not the amount of food
-increases fox weight according to this model. Is this expected or
-unexpected?
+Now infer the total impact of adding food to a territory. Run a model
+with `weight` as a function of `avgfood`. Based on your results, does
+more food make foxes heavier? In your opinion, is this expected or
+unexpected? Please explain in two (2) or more sentences.
 
 ``` r
 food_total <- brm(weight ~ 1 + avgfood, data = fox_dat, family = gaussian,
@@ -331,24 +387,38 @@ summary(food_total)
 
 ------------------------------------------------------------------------
 
-### Q2.2b Is there a variable we should condition upon?
+### Q2.8 Is there a variable we should condition upon?
 
-Think back to your DAG elemental confounds. Is there a variable that we
-should condition upon that may be affecting our results?
+We just estimated the total impact of `avgfood` on `weight`, which
+includes both direct and indirect paths. Think back to your DAG
+elemental confounds. If we want to estimate only the direct impact of
+`avgfood` on `weight`, which variable should we condition upon?
 
-*Yes; we should condition upon group size because of the path from
-avgfood -\> grpsize -\> weight, in addition to avgfood -\> weight*
+*Answer*  
+*Yes; we should condition upon `groupsize` because of the path from
+avgfood -\> groupsize -\> weight, in addition to avgfood -\> weight*
 
 ------------------------------------------------------------------------
 
 ### Add in `groupsize`
 
-In the previous model we saw basically no effect of `avgfood` on
-`weight`, but we have an extra path that we need to account for, since
-`avgfood` flows to `weight` through `groupsize`.
+In the previous model we saw no effect of `avgfood` on fox `weight`, but
+we have an extra path that we need to account for, since `avgfood` flows
+to `weight` through `groupsize`.
 
 First, let’s look at the separate effect of `groupsize` in a univariate
-regression, just like with `avgfood`:
+regression, just like with `avgfood`.
+
+------------------------------------------------------------------------
+
+### Q2.9: What’s your hypothesis about how group size affects fox weight?
+
+Before running the model, how do you think the number of foxes in a
+group `groupsize` would affect fox weight? Why?
+
+------------------------------------------------------------------------
+
+Now let’s run the model:
 
 ``` r
 group_on_weight <- brm(weight ~ 1 + groupsize, 
@@ -385,22 +455,25 @@ summary(group_on_weight)
     and Tail_ESS are effective sample size measures, and Rhat is the potential
     scale reduction factor on split chains (at convergence, Rhat = 1).
 
-Similar to the sole effect of `avgfood` in a univariate regression, we
-see no effect; the estimate for the slope of `groupsize` on `weight` is
--0.16, but the 95% CI are between -0.33 and 0.02, which includes 0,
-meaning the effect of group size could very well be zero *given this
-model*
+Similar to the total effect of `avgfood` on `weight` in a univariate
+regression, we see no effect; the estimate for the slope of `groupsize`
+on `weight` is -0.16, but the 95% CI are between -0.33 and 0.02, which
+includes 0. This suggests the effect of `groupsize` on `weight` could
+very well be zero, *given this model*.
 
-Now, let’s combine both of these variables - `avgfood` and `groupsize` -
-into a multiple regression to solve our path problem and estimate the
-**direct effect** of `avgfood` on `weight`. (This will also give us the
-direct effect of `groupsize` on `weight`).
+To estimate the **direct effect** of `avgfood` on `weight`, we need to
+block the indirect path through `groupsize`. To do that, we include
+`groupsize` in a multiple regression (along with our main interest,
+`avgfood`). (By coincidence, this will also give us the direct effect of
+`groupsize` on `weight`. Look hard at the DAG and ask Calvin or Malin if
+the reasoning here isn’t clear).
 
-Now we add in `groupsize`. This accounts for the fork/pipe between
-`weight`-\>`groupsize`-\>`avgfood`.
+Let’s add in `groupsize` to block the pipe
+`weight`-\>`groupsize`-\>`avgfood`:
 
 ``` r
-food_direct <- brm(weight ~ 1 + avgfood + groupsize, data = fox_dat,
+food_direct <- brm(weight ~ 1 + avgfood + groupsize, 
+                   data = fox_dat,
                    family = gaussian,
                    prior = c(prior(normal(0, 0.2), class = Intercept),
                              prior(normal(0, 0.5), class = b,),
@@ -432,38 +505,43 @@ summary(food_direct)
     and Tail_ESS are effective sample size measures, and Rhat is the potential
     scale reduction factor on split chains (at convergence, Rhat = 1).
 
-### Q2.3 Interpret the multiple regression output
+------------------------------------------------------------------------
 
-Interpret the output of this model which looks at
-`weight ~ avgfood + groupsize`.
+### Interpret the multiple regression output
 
-1.  What are the effects of `avgfood` and `groupsize` now that you have
-    accounted for both variables?
-2.  How does this change your interpretation from the univariate
-    regressions of each variable separately?
-3.  Provide a small discussion (2-4 sentences) of why you think these
-    results turned out the way they did in the context of the ecological
-    system of fox territories. Include why you think that the univariate
-    regressions may have come out as un-informative.
+#### Q2.10a
 
-Some answers:
+What are the effects of `avgfood` and `groupsize` now that you have
+accounted for both variables?
 
-Here we see that when we stratify by group size, we see a strong
-positive effect of food on weight. This indicates that within a given
-group size, more food is associated with more weight (heavier foxes). We
-also see a negative effect of group size: as the group size increases,
-the weight of individual foxes declines.
+#### Q2.10b
 
-Altogether, these results seem to suggest a masking effect, where one
+How does this interpretation change your interpretation from the
+univariate regressions of each variable separately with `weight`?
+
+#### Q2.10c
+
+Provide a small discussion (2-4 sentences) explaining in your own words
+why these results turned out the way they did, in the context of the
+ecological system of fox territories. Include why you think that the
+univariate regressions may have suggested no relationship while the
+multiple regression suggests a different answer.
+
+*Answer*. *There are many options here. We see that when we stratify by
+group size, we see a strong positive effect of food on weight. This
+indicates that within a given group size, more food is associated with
+more weight (heavier foxes). We also see a negative effect of group
+size: as the group size increases, the weight of individual foxes
+declines.*
+
+*Altogether, these results seem to suggest a masking effect, where one
 variable is cancelling out the effect of another. That is, as more food
 is available, more foxes move into the territory, increasing the group
 size. This continues until an equilibrium is reached where the amount of
 food available is equally good (or equally bad) within each territory.
 Thus, the total effect of food is negligible because as more food
 becomes available, the group size increases such that the amount of food
-available for each individual fox remains relatively stable.
-
-------------------------------------------------------------------------
+available for each individual fox remains relatively stable.*
 
 ------------------------------------------------------------------------
 
