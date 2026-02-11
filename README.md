@@ -44,7 +44,7 @@ library(tidyverse) # for data wrangling
 
 # 1. DAG practice
 
-![example DAG](example_DAG.jpg)
+![example DAG](example_dag.jpg)
 
 Directed Acyclic Graphs (DAGs) represent our understanding of causal
 influences in a system, with arrows connecting causes to effects.
