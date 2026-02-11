@@ -37,8 +37,6 @@ library(rethinking)
 
 library(brms) # for statistics
 library(tidyverse) # for data wrangling
-# install.packages("dagitty_0.3-4.tgz", repos = NULL, type = "source")
-# library("daggity")
 
 ```
 
@@ -91,7 +89,9 @@ Given what you just wrote about paths to close, which variables should you condi
 
 # 2. Foxes: Regression practice informed by DAGs
 
-For this section, we are going to implement what we learned about DAGs into an example about foxes from the `rethinking` package. Let's load in the data:
+![urban fox, pestuk.com](urbanfox.jpg)
+
+For this section, we are going to implement what we learned about DAGs into an example about urban fox territories from the `rethinking` package. Let's load in the data:
 
 ```{r}
 # Load in the fox data
@@ -111,22 +111,22 @@ From the Rethinking textbook: "The data in data(foxes) are 116 foxes from 30 dif
 
 ---------
 
-### Q2.1 Identify the "elemental confounds" in the fox DAG
+### Q2.1 Identify the "confounds" in the fox DAG
 
-Which of the confounds below (Fork, Pipe, Collider, and Descendant) do you see in the Fox DAG? List the names of the confounds you see AND the particular paths (e.g. "Pipe1: X->Z->Y, Pipe2: X->Z->C and Fork1: X<-Z->Y")
+Which of the confounds below (Fork, Pipe, Collider, and Descendant) do you see in the Fox DAG? List the names of the confounds you see AND the particular paths (e.g. "Pipe1: X → Z → Y, Pipe2: X → Z → C and Fork1: X ← Z → Y")
 
 *Answer:*
-Pipe 1: area -> avgfood -> weight
-Pipe 2: area -> avgfood -> groupsize -> weight
-Fork 1: weight <- avgfood -> groupsize 
-Collider 1: avgfood -> weight <- groupsize
+Pipe 1: area → avgfood → weight
+Pipe 2: area → avgfood → groupsize → weight
+Fork 1: weight ← avgfood → groupsize 
+Collider 1: avgfood → weight ← groupsize
 
 ![elemental confounds](elemental_confounds.jpg)
 
 
 --------
 
-### Total causal influence of area on weight
+## Total causal influence of area on weight
 
 In this first part we are going to infer the total causal influence of area on weight. Would increasing the area available to each fox make it heavier (healthier)? 
 
@@ -218,7 +218,7 @@ They should have code and a plot with few or no lines exceeding their min and ma
 
 ---------
 
-Run a model predicting average food as a function of area
+Now, let's run a model predicting average food as a function of area:
 
 ```{r}
 food_on_area <- brm(avgfood ~ 1 + area, 
@@ -232,13 +232,13 @@ food_on_area <- brm(avgfood ~ 1 + area,
                     file = "output/food_on_area")
 ```
 
-Now let's check out the summary
+Check out the summary
 
 ```{r}
 summary(food_on_area)
 ```
 
-We see a fairly strong effect of area on the average amount of food; because we standardized each variable by standard deviations, our units are now in "standard deviations". (*We can backtransform these value to translate this back to the normal units! We won't do that here, as we'll get a lot more practice with that when we get to generalized linear models, but just know that if you are annoyed by the unitless values, there's a way out!*)
+We see a fairly strong effect of area on the average amount of food; because we standardized each variable by standard deviations, our units are now in "standard deviations". (*Note: we can back-transform these value to translate this back to the normal units! We won't do that here, as we'll get a lot more practice with that when we get to generalized linear models, but just know that if you are annoyed by the unitless values, there's a way out!*)
 
 We find that for an increase of 1 standard deviation in area we would expect to see a .88 standard deviation increase in food. The credible interval for area is 0.79 to 0.96, which does not include zero. Logically this makes sense, as a greater area means there are would be more prey available.
 
@@ -246,7 +246,7 @@ We find that for an increase of 1 standard deviation in area we would expect to 
 
 ### Q2.2a Run a model to look at the impact of food on fox weight 
 
-Now infer the causal impact of adding food to a territory. Run a model with `weight` as a function of `avgfood`. Do you think this make foxes heavier? Interpret your results and whether or not the amount of food increases fox weight according to this model. Is this expected or unexpected?
+Now infer the causal impact of adding food to a territory. Run a model with `weight` as a function of `avgfood`. Do you think more food will make foxes heavier? Interpret your results and whether or not the amount of food increases fox weight according to this model. Are your results expected or unexpected?
 
 
 ```{r}
@@ -260,13 +260,11 @@ food_total <- brm(weight ~ 1 + avgfood, data = fox_dat, family = gaussian,
 summary(food_total)
 ```
 
-
-
 -------------
 
 ### Q2.2b Is there a variable we should condition upon?
 
-Think back to your DAG elemental confounds. Is there a variable that we should condition upon that may be affecting our results?
+Think back to the confounds in the DAGs we've looked at. Is there a variable that we should condition upon that may be affecting our results? If so, what variable?
 
 *Yes; we should condition upon group size because of the path from avgfood -> grpsize -> weight, in addition to avgfood -> weight*
 
@@ -275,9 +273,19 @@ Think back to your DAG elemental confounds. Is there a variable that we should c
 
 ### Add in `groupsize`
 
-In the previous model we saw basically no effect of `avgfood` on `weight`, but we have an extra path that we need to account for, since `avgfood` flows to `weight` through `groupsize`.
+In the previous model we saw no effect of `avgfood` on fox `weight`, but we have an extra path that we need to account for, since `avgfood` flows to `weight` through `groupsize`.
 
-First, let's look at the separate effect of `groupsize` in a univariate regression, just like with `avgfood`:
+First, let's look at the separate effect of `groupsize` in a univariate regression, just like with `avgfood`. 
+
+-------
+
+### Q2.3: What's your hypothesis about how group size affects fox weight?
+
+Before running the model, how do you think the number of foxes in a group `groupsize` would affect fox weight? Why?
+
+-------
+
+Now let's run the model:
 
 ```{r}
 group_on_weight <- brm(weight ~ 1 + groupsize, 
@@ -297,6 +305,8 @@ summary(group_on_weight)
 
 Similar to the sole effect of `avgfood` in a univariate regression, we see no effect; the estimate for the slope of `groupsize` on `weight` is -0.16, but the 95% CI are between -0.33 and 0.02, which includes 0, meaning the effect of group size could very well be zero *given this model*
 
+-----------
+
 Now, let's combine both of these variables - `avgfood` and `groupsize` - into a multiple regression to solve our path problem and estimate the **direct effect** of `avgfood` on `weight`. (This will also give us the direct effect of `groupsize` on `weight`).
 
 Now we add in `groupsize`. This accounts for the fork/pipe between `weight`->`groupsize`->`avgfood`.
@@ -313,13 +323,23 @@ food_direct <- brm(weight ~ 1 + avgfood + groupsize, data = fox_dat,
 summary(food_direct)
 ```
 
-### Q2.3 Interpret the multiple regression output
+-------
+
+### Interpret the multiple regression output
 
 Interpret the output of this model which looks at `weight ~ avgfood + groupsize`. 
 
-1.    What are the effects of `avgfood` and `groupsize` now that you have accounted for both variables?
-2.    How does this change your interpretation from the univariate regressions of each variable separately?
-3.    Provide a small discussion (2-4 sentences) of why you think these results turned out the way they did in the context of the ecological system of fox territories. Include why you think that the univariate regressions may have come out as un-informative.
+### Q2.4a 
+
+What are the effects of `avgfood` and `groupsize` now that you have accounted for both variables?
+
+### Q2.4b
+
+How does this change your interpretation from the univariate regressions of each variable separately?
+
+### Q2.4c
+
+Provide a small discussion (2-4 sentences) of why you think these results turned out the way they did in the context of the ecological system of fox territories. Include why you think that the univariate regressions may have come out as un-informative.
 
 Some answers:
 
