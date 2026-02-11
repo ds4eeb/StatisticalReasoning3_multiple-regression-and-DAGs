@@ -54,26 +54,55 @@ identify the fundamental parts
 
 ------
 
-# Foxes: Regression practice informed by DAGs
+# 2. Foxes: Regression practice informed by DAGs
+
+For this section, we are going to implement what we learned about DAGs into an example about foxes from the `rethinking` package. Let's load in the data:
 
 ```{r}
 # Load in the fox data
 data(foxes)
+```
 
+
+```{r}
 # Check out the fox data
 ?foxes
 head(foxes)
 ```
 
-"All three problems below are based on the same data. The data in data(foxes) are 116 foxes from 30 different urban groups in England. These foxes are like street gangs. Group size varies from 2 to 8 individuals. Each group maintains its own urban territory. Some territories are larger than others. The area variable encodes this information. Some territories also have more avgfood than others. We want to model the weight of each fox. For the problems below, assume the following DAG:"
+From the Rethinking textbook: "The data in data(foxes) are 116 foxes from 30 different urban groups in England. These foxes are like street gangs. `Group size` varies from 2 to 8 individuals. Each group maintains its own urban territory. Some territories are larger than others. The `area` variable encodes this information. Some territories also have more `avgfood` than others. We want to model the `weight` of each fox. For the problems below, assume the following DAG:"
 
 ![fox DAG](foxDAG.jpg)
 
 ---------
 
-6H3.  Use a model to infer the total causal influence of area on weight. Would increasing the area available to each fox make it heavier (healthier)? You might want to standardize the variables. Regardless, use prior predictive simulation to show that your model’s prior predictions stay within the possible outcome range.
+### Q2.1 Identify the "elemental confounds" in the fox DAG
+
+Which of the confounds below (Fork, Pipe, Collider, and Descendant) do you see in the Fox DAG? List the names of the confounds you see AND the particular paths (e.g. "Pipe1: X->Z->Y, Pipe2: X->Z->C and Fork1: X<-Z->Y")
+
+*Answer:*
+Pipe 1: area -> avgfood -> weight
+Pipe 2: area -> avgfood -> groupsize -> weight
+Fork 1: weight <- avgfood -> groupsize 
+Collider 1: avgfood -> weight <- groupsize
+
+![elemental confounds](elemental_confounds.jpg)
+
+
+--------
+
+### Total causal influence of area on weight
+
+In this first part we are going to infer the total causal influence of area on weight. Would increasing the area available to each fox make it heavier (healthier)? 
+
+First we will standardize the variables. 
+
+Second we will use prior predictive simulation to show that your model’s prior predictions stay within the possible outcome range.
+
+Third we will run the models
 
 ### Solution to 6H3
+
 Standardize weight to mean zero and standard deviation of 1
 
 ```{r}
