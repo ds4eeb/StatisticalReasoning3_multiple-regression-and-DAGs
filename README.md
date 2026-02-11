@@ -20,11 +20,13 @@ You will submit one output for this activity:
 help. If we still can’t solve it, you can submit the .qmd file instead.*
 
 A reminder: **Please label the code** in your final submission in two
-ways: 1) denote your answers to each question using headers that
-correspond to the question you’re answering and 2) thoroughly “comment”
-your code: remember, this means annotating your code directly by typing
-descriptions of what each line does after a `#`. This will help future
-you!
+ways:
+
+1.  denote your answers to each question using headers that correspond
+    to the question you’re answering, and
+2.  thoroughly “comment” your code: remember, this means annotating your
+    code directly by typing descriptions of what each line does after a
+    `#`. This will help future you!
 
 ------------------------------------------------------------------------
 
@@ -89,11 +91,181 @@ Would increasing the area available to each fox make it heavier
 use prior predictive simulation to show that your model’s prior
 predictions stay within the possible outcome range.
 
+### Solution to 6H3
+
+Standardize weight to mean zero and standard deviation of 1
+
+``` r
+fox_dat <- foxes %>%
+  as_tibble() %>%
+  select(area, avgfood, weight, groupsize) %>%
+  mutate(across(everything(), standardize))
+```
+
+Simulate from some priors for a linear regression: alpha \~ Gaussian(0,
+0.2), beta \~ Gaussian(0, 0.5)
+
+``` r
+n <- 1000
+priorsims <- tibble(group = seq_len(n),
+       alpha = rnorm(n, 0, 0.2), # prior for alpha
+       beta = rnorm(n, 0, 0.5)) %>% # prior for beta
+  expand(nesting(group, alpha, beta),
+         area = seq(from = -2, to = 2, length.out = 100)) %>% # set up a range of areas
+  mutate(weight = alpha + beta * area) # calculate weight from parameters and area
+```
+
+Make a plot of what these priors imply
+
+``` r
+minweight_std <- (0 - mean(foxes$weight)) / sd(foxes$weight) # a fox of zero weight, standardized to match the data
+maxweight_std <- (max(foxes$weight) - mean(foxes$weight)) / sd(foxes$weight) # max fox weight, standardized to match the data
+
+ggplot(priorsims, aes(x = area, y = weight, group = group)) +
+  geom_line(alpha = 1 / 10) +
+  geom_hline(yintercept = c(minweight_std,
+                            maxweight_std),
+             linetype = c("dashed", "solid"), color = "red") +
+  annotate(geom = "text", x = -2, y = -3.83, hjust = 0, vjust = 1,
+           label = "No weight") +
+  annotate(geom = "text", x = -2, y = 2.55, hjust = 0, vjust = 0,
+           label = "Maximum weight") +
+  expand_limits(y = c(-4, 4)) +
+  labs(x = "Standardized Area", y = "Standardized Weight")
+```
+
+![](README_files/figure-commonmark/unnamed-chunk-5-1.png)
+
+Run a model predicting average food as a function of area
+
+``` r
+food_on_area <- brm(avgfood ~ 1 + area, data = fox_dat, family = gaussian,
+                    prior = c(prior(normal(0, 0.2), class = Intercept),
+                              prior(normal(0, 0.5), class = b,),
+                              prior(exponential(1), class = sigma)),
+                    iter = 4000, warmup = 2000, chains = 4, cores = 4, seed = 1234,
+                    file = "output/food_on_area")
+
+summary(food_on_area)
+```
+
+     Family: gaussian 
+      Links: mu = identity 
+    Formula: avgfood ~ 1 + area 
+       Data: fox_dat (Number of observations: 116) 
+      Draws: 4 chains, each with iter = 4000; warmup = 2000; thin = 1;
+             total post-warmup draws = 8000
+
+    Regression Coefficients:
+              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+    Intercept    -0.00      0.04    -0.08     0.09 1.00     8149     5893
+    area          0.88      0.04     0.79     0.96 1.00     7942     6347
+
+    Further Distributional Parameters:
+          Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+    sigma     0.48      0.03     0.42     0.54 1.00     8250     5783
+
+    Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+    and Tail_ESS are effective sample size measures, and Rhat is the potential
+    scale reduction factor on split chains (at convergence, Rhat = 1).
+
+We see a fairly strong effect of area on the average amount of food;
+because we standardized the data by standard deviations, we find that
+for an increase of 1 standard deviation in area we would expect to see a
+.88 standard deviation increase in food. The credible interval for area
+is 0.79 to 0.96, which does not include zero. Logically this makes
+sense, as a greater area means there are would be more prey available.
+
 ------------------------------------------------------------------------
 
 6H4. Now infer the causal impact of adding food to a territory. Would
 this make foxes heavier? Which covariates do you need to adjust for to
 estimate the total causal influence of food?
+
+``` r
+food_total <- brm(weight ~ 1 + avgfood, data = fox_dat, family = gaussian,
+                  prior = c(prior(normal(0, 0.2), class = Intercept),
+                            prior(normal(0, 0.5), class = b,),
+                            prior(exponential(1), class = sigma)),
+                  iter = 4000, warmup = 2000, chains = 4, cores = 4, seed = 1234,
+                  file = "output/food_total")
+
+summary(food_total)
+```
+
+     Family: gaussian 
+      Links: mu = identity 
+    Formula: weight ~ 1 + avgfood 
+       Data: fox_dat (Number of observations: 116) 
+      Draws: 4 chains, each with iter = 4000; warmup = 2000; thin = 1;
+             total post-warmup draws = 8000
+
+    Regression Coefficients:
+              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+    Intercept    -0.00      0.08    -0.17     0.16 1.00     7881     5561
+    avgfood      -0.02      0.09    -0.21     0.16 1.00     7690     6013
+
+    Further Distributional Parameters:
+          Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+    sigma     1.01      0.07     0.89     1.15 1.00     7522     5748
+
+    Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+    and Tail_ESS are effective sample size measures, and Rhat is the potential
+    scale reduction factor on split chains (at convergence, Rhat = 1).
+
+First the total effect. In this model we see basically no effect of food
+on weight. The 95% interval in the {brms} output is -0.21 to 0.15 with a
+mean of -0.02.
+
+Now we estimate the direct effect, adding in `groupsize`:
+
+``` r
+food_direct <- brm(weight ~ 1 + avgfood + groupsize, data = fox_dat,
+                   family = gaussian,
+                   prior = c(prior(normal(0, 0.2), class = Intercept),
+                             prior(normal(0, 0.5), class = b,),
+                             prior(exponential(1), class = sigma)),
+                   iter = 4000, warmup = 2000, chains = 4, cores = 4, seed = 1234,
+                   file = "output/food_direct")
+
+summary(food_direct)
+```
+
+     Family: gaussian 
+      Links: mu = identity 
+    Formula: weight ~ 1 + avgfood + groupsize 
+       Data: fox_dat (Number of observations: 116) 
+      Draws: 4 chains, each with iter = 4000; warmup = 2000; thin = 1;
+             total post-warmup draws = 8000
+
+    Regression Coefficients:
+              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+    Intercept    -0.00      0.08    -0.16     0.15 1.00     6230     5224
+    avgfood       0.48      0.18     0.13     0.83 1.00     4213     4193
+    groupsize    -0.57      0.18    -0.93    -0.21 1.00     4223     3946
+
+    Further Distributional Parameters:
+          Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+    sigma     0.96      0.06     0.85     1.10 1.00     6224     5055
+
+    Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+    and Tail_ESS are effective sample size measures, and Rhat is the potential
+    scale reduction factor on split chains (at convergence, Rhat = 1).
+
+Here we see that when we stratify by group size, we see a strong
+positive effect of food on weight. This indicates that within a given
+group size, more food is associated with more weight (heavier foxes). We
+also see a negative effect of group size: as the group size increases,
+the weight of individual foxes declines.
+
+Altogether, these results seem to suggest a masking effect, where one
+variable is cancelling out the effect of another. That is, as more food
+is available, more foxes move into the territory, increasing the group
+size. This continues until an equilibrium is reached where the amount of
+food available is equally good (or equally bad) within each territory.
+Thus, the total effect of food is negligible because as more food
+becomes available, the group size increases such that the amount of food
+available for each individual fox remains relatively stable.
 
 ------------------------------------------------------------------------
 
@@ -101,6 +273,11 @@ estimate the total causal influence of food?
 need to adjust for? Looking at the posterior distribution of the
 resulting model, what do you think explains these data? That is, can you
 explain the estimates for all three problems? How do they go together?
+
+Next we estimate the direct effect. Here we see that when we stratify by
+group size, we see a strong positive effect of food on weight. This
+indicates that within a given group size, more food is associated with
+more weight.
 
 ------------------------------------------------------------------------
 
