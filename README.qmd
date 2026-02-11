@@ -39,12 +39,34 @@ library(tidyverse) # for data wrangling
 ```
 
 
-# DAG practice
+# 1. DAG practice
 ![example DAG](example_DAG.jpg)
 
-Directed Acyclic Graphs (DAGs) represent our understanding of causal influences in a system, with arrows connecting causes to effects. Consider the DAG above and modify it to include the variable V, an unobserved cause of C and Y: C ← V → Y. Reanalyze the DAG. How many paths connect X to Y? Which must be closed? Which variables should you condition on now?
+Directed Acyclic Graphs (DAGs) represent our understanding of causal influences in a system, with arrows connecting causes to effects. Consider the DAG above. 
 
-identify the fundamental parts
+Now recreate the DAG above on [dagitty.net](https://dagitty.net). Leave the window open, as we'll be using it more.
+
+### Q1.1
+Please paste either your DAG image from the website or the DAG model code here.
+
+### Q1.2
+There are four fundamental relations in a DAG: the fork, the pipe, the collider, and the descendent. Which forks do you see? Please write them out in a Quarto list in the form L ← M → N.
+
+### Q1.3
+Which colliders do you see? Please write them out in a Quarto list in the form L → M ← N. Hint: there is more than one!
+
+### Q1.4
+Now modify the DAG (should still be on dagitty.net) to include the variable V, an unobserved cause of C and Y: C ← V → Y. Please paste either your DAG image from the website or the DAG model code here.
+
+### Q1.5
+Reanalyze this new DAG. How many paths connect X to Y? Please list them in a Quarto list here:
+
+### Q1.6
+Which paths must be closed to estimate the direct effect of X on Y? 
+
+### Q1.7
+Given what you just wrote about paths to close, which variables should you condition on to estimate the direct effect of X on Y in your new DAG?
+
 
 -----------
 
