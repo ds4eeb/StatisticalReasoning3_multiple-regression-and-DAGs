@@ -7,6 +7,7 @@ execute:
 editor: source
 ---
 
+
 Welcome! This is the third statistical reasoning activity. The goals of this activity are to understand how to implement DAGs in the context of multiple regression. Specifically, you will:
 
 1.    Build and interpret the relationships in DAGs
@@ -28,6 +29,7 @@ A reminder: **Please label the code** in your final submission in two ways:
 
 Let's start by reading in the relevant packages
 
+
 ```{r}
 # Run this to install some data packages
 # devtools::install_github("rmcelreath/rethinking")
@@ -37,6 +39,7 @@ library(brms) # for statistics
 library(tidyverse) # for data wrangling
 
 ```
+
 
 
 # 1. DAG practice
@@ -95,17 +98,18 @@ Given what you just wrote about paths to close, which variables should you condi
 
 For this section, we are going to implement what we learned about DAGs into an example about urban fox territories from the `rethinking` package. Let's load in the data:
 
+
 ```{r}
 # Load in the fox data
 data(foxes)
 ```
-
 
 ```{r}
 # Check out the fox data
 ?foxes
 head(foxes)
 ```
+
 
 From the Rethinking textbook: "The data in data(foxes) are 116 foxes from 30 different urban groups in England. These foxes are like street gangs. `Group size` varies from 2 to 8 individuals. Each group maintains its own urban territory. Some territories are larger than others. The `area` variable encodes this information. Some territories also have more `avgfood` than others. We want to model the `weight` of each fox [in kg]." For the questions below, we will assume the following DAG is appropriate for this system:
 
@@ -132,6 +136,7 @@ In this first part we are going to infer the total causal influence of area on w
 
 Standardize weight to mean zero and standard deviation of 1
 
+
 ```{r}
 fox_dat <- foxes %>%
   as_tibble() %>%
@@ -139,7 +144,9 @@ fox_dat <- foxes %>%
   mutate(across(everything(), standardize))
 ```
 
+
 Simulate from some priors for a linear regression with intercept *alpha* and slope *beta*: *alpha* ~ Gaussian(0, 0.2), *beta* ~ Gaussian(0, 2)
+
 
 ```{r}
 n <- 1000
@@ -151,13 +158,16 @@ priorsims <- tibble(group = seq_len(n),
   mutate(weight = alpha + beta * area) # calculate weight from the parameters and area
 ```
 
+
 Make a plot of what these priors imply.
+
 ```{r}
 ggplot(priorsims, aes(x = area, y = weight, group = group)) +
   geom_line(alpha = 1 / 10) +
   labs(x = "Standardized Area", y = "Standardized Weight")
 
 ```
+
 It's pretty hard to understand what a "reasonable" fox weight is when it is in standardized units. Let's logic our way through this slowly.
 
 --------------------
@@ -195,6 +205,7 @@ Remake and plot a set of prior simulations that use priors you think are reasona
 Run a model predicting average food as a function of area. Modify the code for the priors below to match the priors you just chose.
 
 
+
 ```{r}
 food_on_area <- brm(avgfood ~ 1 + area, 
                     data = fox_dat, 
@@ -207,11 +218,14 @@ food_on_area <- brm(avgfood ~ 1 + area,
                     file = "output/food_on_area")
 ```
 
+
 Check out the summary:
+
 
 ```{r}
 summary(food_on_area)
 ```
+
 
 
 We see a fairly strong effect of area on the average amount of food. Because we standardized each variable by standard deviations, our units are now in "standard deviations". (*We can backtransform these value to translate this back to the normal units! We won't do that here, as we'll get a lot more practice with that when we get to generalized linear models, but just know that if you are annoyed by the unitless values, there's a way out!*)
@@ -250,6 +264,7 @@ Before running the model, how do you think the number of foxes in a group `group
 
 Now let's run the model:
 
+
 ```{r}
 group_on_weight <- brm(weight ~ 1 + groupsize, 
                        data = fox_dat, 
@@ -261,16 +276,17 @@ group_on_weight <- brm(weight ~ 1 + groupsize,
                        file = "output/group_on_weight")
 ```
 
-
 ```{r}
 summary(group_on_weight)
 ```
+
 
 Similar to the total effect of `avgfood` on `weight` in a univariate regression, we see no effect; the estimate for the slope of `groupsize` on `weight` is -0.16, but the 95% CI are between -0.33 and 0.02, which includes 0. This suggests the effect of `groupsize` on `weight` could very well be zero, *given this model*.
 
 To estimate the **direct effect** of `avgfood` on `weight`, we need to block the indirect path through `groupsize`. To do that, we include `groupsize` in a multiple regression (along with our main interest, `avgfood`). (By coincidence, this will also give us the direct effect of `groupsize` on `weight`. Look hard at the DAG and ask Calvin or Malin if the reasoning here isn't clear).
 
 Let's add in `groupsize` to block the pipe `weight`->`groupsize`->`avgfood`:
+
 
 ```{r}
 food_direct <- brm(weight ~ 1 + avgfood + groupsize, 
@@ -284,6 +300,7 @@ food_direct <- brm(weight ~ 1 + avgfood + groupsize,
 
 summary(food_direct)
 ```
+
 
 ---------
 
@@ -321,3 +338,4 @@ When you have finished, remember to pull, stage, commit, and push with GitHub:
 -   Push your changes to the remote branch
 
 Then submit the well-labeled PDF on Gradescope. Thanks!
+

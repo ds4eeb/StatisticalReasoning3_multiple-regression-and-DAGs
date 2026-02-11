@@ -110,8 +110,6 @@ DAG?
 
 ------------------------------------------------------------------------
 
-------------------------------------------------------------------------
-
 # 2. Foxes: Regression practice informed by DAGs
 
 ![urban fox, pestuk.com](urbanfox.jpg)
@@ -160,10 +158,6 @@ Which of the first three fundamental relations above (Fork, Pipe, and
 Collider) do you see in the Fox DAG? List the names of the relations you
 see AND the particular paths (e.g. “Pipe1: X-\>Z-\>Y, Pipe2: X-\>Z-\>C
 and Fork1: X\<-Z-\>Y”)
-
-*Answer:*. Pipe 1: area -\> avgfood -\> weight. Pipe 2: area -\> avgfood
--\> groupsize -\> weight. Fork 1: weight \<- avgfood -\> groupsize.  
-Collider 1: avgfood -\> weight \<- groupsize. *End answer:*
 
 ------------------------------------------------------------------------
 
@@ -219,17 +213,11 @@ is in standardized units. Let’s logic our way through this slowly.
 
 What to you seems like a reasonable minimum weight for a fox, in kg?
 
-*Answer*. *Something in 7 to 15 kg makes sense. No need to be too
-strict.*
-
 ------------------------------------------------------------------------
 
 ### Q2.3 Maximum fox weight
 
 What to you seems like a reasonable minimum weight for a fox, in kg?
-
-*Answer*. *Something in 0 to 3 kg makes sense. No need to be too
-strict.*
 
 ------------------------------------------------------------------------
 
@@ -242,25 +230,6 @@ so that they are plotted as centered values in units of standard
 deviation (i.e., subtract the mean and divide by the standard deviation
 of foxes\$weight).
 
-*Answer*
-
-``` r
-minweight_std <- (0 - mean(foxes$weight)) / sd(foxes$weight) # a fox of zero weight, standardized to match the data
-maxweight_std <- (14 - mean(foxes$weight)) / sd(foxes$weight) # max fox weight, standardized to match the data
-
-ggplot(priorsims, aes(x = area, y = weight, group = group)) +
-  geom_line(alpha = 1 / 10) +
-  geom_hline(yintercept = c(minweight_std,
-                            maxweight_std),
-             linetype = c("dashed", "solid"), color = "red") +
-  expand_limits(y = c(-4, 4)) +
-  labs(x = "Standardized Area", y = "Standardized Weight")
-```
-
-![](README_files/figure-commonmark/unnamed-chunk-7-1.png)
-
-*End answer*
-
 ------------------------------------------------------------------------
 
 ### Q2.5 Evaluate prior predictive simulation
@@ -269,9 +238,6 @@ Do your priors seem reasonable? You haven’t seen any data yet, though
 you have marked out the minimum and maximum weights you expect foxes to
 be. Do your priors greatly exceed those values? Please explain your
 thinking.
-
-*Answer*. *The priors do not seem reasonable. They imply negative
-weights for foxes in large or small areas.*
 
 ------------------------------------------------------------------------
 
@@ -283,12 +249,9 @@ sure to include the minimum and maximum fox weights that you expect. You
 can iterate on this a few times (simulate, plot, adjust, etc.) until you
 arrive at priors that make sense to you.
 
-*Answer*. *They should have code and a plot with few or no lines
-exceeding their min and max lines. Something like alpha \~ Gaussian(0,
-0.2), beta \~ Gaussian(0, 0.5) would make sense, but we can accept a
-wide range here.*
-
 ------------------------------------------------------------------------
+
+## Run models
 
 Run a model predicting average food as a function of area. Modify the
 code for the priors below to match the priors you just chose.
@@ -354,37 +317,6 @@ with `weight` as a function of `avgfood`. Based on your results, does
 more food make foxes heavier? In your opinion, is this expected or
 unexpected? Please explain in two (2) or more sentences.
 
-``` r
-food_total <- brm(weight ~ 1 + avgfood, data = fox_dat, family = gaussian,
-                  prior = c(prior(normal(0, 0.2), class = Intercept),
-                            prior(normal(0, 0.5), class = b,),
-                            prior(exponential(1), class = sigma)),
-                  iter = 4000, warmup = 2000, chains = 4, cores = 4, seed = 1234,
-                  file = "output/food_total")
-
-summary(food_total)
-```
-
-     Family: gaussian 
-      Links: mu = identity 
-    Formula: weight ~ 1 + avgfood 
-       Data: fox_dat (Number of observations: 116) 
-      Draws: 4 chains, each with iter = 4000; warmup = 2000; thin = 1;
-             total post-warmup draws = 8000
-
-    Regression Coefficients:
-              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    Intercept    -0.00      0.08    -0.17     0.16 1.00     7881     5561
-    avgfood      -0.02      0.09    -0.21     0.16 1.00     7690     6013
-
-    Further Distributional Parameters:
-          Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma     1.01      0.07     0.89     1.15 1.00     7522     5748
-
-    Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
-    and Tail_ESS are effective sample size measures, and Rhat is the potential
-    scale reduction factor on split chains (at convergence, Rhat = 1).
-
 ------------------------------------------------------------------------
 
 ### Q2.8 Is there a variable we should condition upon?
@@ -394,13 +326,9 @@ includes both direct and indirect paths. Think back to your DAG
 elemental confounds. If we want to estimate only the direct impact of
 `avgfood` on `weight`, which variable should we condition upon?
 
-*Answer*  
-*Yes; we should condition upon `groupsize` because of the path from
-avgfood -\> groupsize -\> weight, in addition to avgfood -\> weight*
-
 ------------------------------------------------------------------------
 
-### Add in `groupsize`
+## Add in `groupsize`
 
 In the previous model we saw no effect of `avgfood` on fox `weight`, but
 we have an extra path that we need to account for, since `avgfood` flows
@@ -509,15 +437,21 @@ summary(food_direct)
 
 ### Interpret the multiple regression output
 
+------------------------------------------------------------------------
+
 #### Q2.10a
 
 What are the effects of `avgfood` and `groupsize` now that you have
 accounted for both variables?
 
+------------------------------------------------------------------------
+
 #### Q2.10b
 
 How does this interpretation change your interpretation from the
 univariate regressions of each variable separately with `weight`?
+
+------------------------------------------------------------------------
 
 #### Q2.10c
 
@@ -526,22 +460,6 @@ why these results turned out the way they did, in the context of the
 ecological system of fox territories. Include why you think that the
 univariate regressions may have suggested no relationship while the
 multiple regression suggests a different answer.
-
-*Answer*. *There are many options here. We see that when we stratify by
-group size, we see a strong positive effect of food on weight. This
-indicates that within a given group size, more food is associated with
-more weight (heavier foxes). We also see a negative effect of group
-size: as the group size increases, the weight of individual foxes
-declines.*
-
-*Altogether, these results seem to suggest a masking effect, where one
-variable is cancelling out the effect of another. That is, as more food
-is available, more foxes move into the territory, increasing the group
-size. This continues until an equilibrium is reached where the amount of
-food available is equally good (or equally bad) within each territory.
-Thus, the total effect of food is negligible because as more food
-becomes available, the group size increases such that the amount of food
-available for each individual fox remains relatively stable.*
 
 ------------------------------------------------------------------------
 
