@@ -7,7 +7,11 @@ execute:
 editor: source
 ---
 
-Welcome! This is the third statistical reasoning activity. The goals of this activity are to understand how to implement DAGs in the context of multiple regression.
+Welcome! This is the third statistical reasoning activity. The goals of this activity are to understand how to implement DAGs in the context of multiple regression. Specifically, you will:
+
+1.    Build and interpret the relationships in DAGs
+2.    Use prior predictive simulation to adjust priors
+3.    Apply your undertanding of DAG structure to a multiple regression problem
 
 ------------------------------------------------------------------------
 
@@ -117,13 +121,11 @@ Collider 1: avgfood -> weight <- groupsize
 
 In this first part we are going to infer the total causal influence of area on weight. Would increasing the area available to each fox make it heavier (healthier)? 
 
-First we will standardize the variables. 
+-   First we will standardize the variables. 
+-   Second we will use prior predictive simulation to show that your model’s prior predictions stay within the possible outcome range.
+-   Third we will run the models
 
-Second we will use prior predictive simulation to show that your model’s prior predictions stay within the possible outcome range.
-
-Third we will run the models
-
-### Solution to 6H3
+#### Standardize
 
 Standardize weight to mean zero and standard deviation of 1
 
@@ -139,8 +141,8 @@ Simulate from some priors for a linear regression: alpha ~ Gaussian(0, 0.2), bet
 ```{r}
 n <- 1000
 priorsims <- tibble(group = seq_len(n),
-       alpha = rnorm(n, 0, 0.2), # prior for alpha
-       beta = rnorm(n, 0, 0.5)) %>% # prior for beta
+                    alpha = rnorm(n, 0, 0.2), # prior for alpha
+                    beta = rnorm(n, 0, 0.5)) %>% # prior for beta
   expand(nesting(group, alpha, beta),
          area = seq(from = -2, to = 2, length.out = 100)) %>% # set up a range of areas
   mutate(weight = alpha + beta * area) # calculate weight from parameters and area
@@ -165,26 +167,38 @@ ggplot(priorsims, aes(x = area, y = weight, group = group)) +
 
 ```
 
+
+----------------
+
 Run a model predicting average food as a function of area
 
 ```{r}
-food_on_area <- brm(avgfood ~ 1 + area, data = fox_dat, family = gaussian,
+food_on_area <- brm(avgfood ~ 1 + area, 
+                    data = fox_dat, 
+                    family = gaussian,
+                    # Here we set the priors that we investigated earlier
                     prior = c(prior(normal(0, 0.2), class = Intercept),
                               prior(normal(0, 0.5), class = b,),
                               prior(exponential(1), class = sigma)),
                     iter = 4000, warmup = 2000, chains = 4, cores = 4, seed = 1234,
                     file = "output/food_on_area")
+```
 
+Now let's check out the summary
+
+```{r}
 summary(food_on_area)
 ```
 
-We see a fairly strong effect of area on the average amount of food; because we standardized the data by standard deviations, we find that for an increase of 1 standard deviation in area we would expect to see a .88 standard deviation increase in food. The credible interval for area is 0.79 to 0.96, which does not include zero. Logically this makes sense, as a greater area means there are would be more prey available.
+We see a fairly strong effect of area on the average amount of food; because we standardized each variable by standard deviations, our units are now in "standard deviations". (*We can backtransform these value to translate this back to the normal units! We won't do that here, as we'll get a lot more practice with that when we get to generalized linear models, but just know that if you are annoyed by the unitless values, there's a way out!*)
 
+We find that for an increase of 1 standard deviation in area we would expect to see a .88 standard deviation increase in food. The credible interval for area is 0.79 to 0.96, which does not include zero. Logically this makes sense, as a greater area means there are would be more prey available.
 
 -------------
 
-6H4.  Now infer the causal impact of adding food to a territory. Would this make foxes heavier? Which covariates do you need to adjust for to estimate the total causal influence of food?
+### Q2.2a Run a model to look at the impact of food on fox weight 
 
+Now infer the causal impact of adding food to a territory. Run a model with `weight` as a function of `avgfood`. Do you think this make foxes heavier? Interpret your results and whether or not the amount of food increases fox weight according to this model. Is this expected or unexpected?
 
 
 ```{r}
@@ -198,9 +212,46 @@ food_total <- brm(weight ~ 1 + avgfood, data = fox_dat, family = gaussian,
 summary(food_total)
 ```
 
-First the total effect. In this model we see basically no effect of food on weight. The 95% interval in the {brms} output is -0.21 to 0.15 with a mean of -0.02.
 
-Now we estimate the direct effect, adding in `groupsize`:
+
+-------------
+
+### Q2.2b Is there a variable we should condition upon?
+
+Think back to your DAG elemental confounds. Is there a variable that we should condition upon that may be affecting our results?
+
+*Yes; we should condition upon group size because of the path from avgfood -> grpsize -> weight, in addition to avgfood -> weight*
+
+
+--------------
+
+### Add in `groupsize`
+
+In the previous model we saw basically no effect of `avgfood` on `weight`, but we have an extra path that we need to account for, since `avgfood` flows to `weight` through `groupsize`.
+
+First, let's look at the separate effect of `groupsize` in a univariate regression, just like with `avgfood`:
+
+```{r}
+group_on_weight <- brm(weight ~ 1 + groupsize, 
+                       data = fox_dat, 
+                       family = gaussian,
+                       prior = c(prior(normal(0, 0.2), class = Intercept),
+                                 prior(normal(0, 0.5), class = b,),
+                                 prior(exponential(1), class = sigma)),
+                       iter = 4000, warmup = 2000, chains = 4, cores = 4, seed = 1234,
+                       file = "output/group_on_weight")
+```
+
+
+```{r}
+summary(group_on_weight)
+```
+
+Similar to the sole effect of `avgfood` in a univariate regression, we see no effect; the estimate for the slope of `groupsize` on `weight` is -0.16, but the 95% CI are between -0.33 and 0.02, which includes 0, meaning the effect of group size could very well be zero *given this model*
+
+Now, let's combine both of these variables - `avgfood` and `groupsize` - into a multiple regression to solve our path problem and estimate the **direct effect** of `avgfood` on `weight`. (This will also give us the direct effect of `groupsize` on `weight`).
+
+Now we add in `groupsize`. This accounts for the fork/pipe between `weight`->`groupsize`->`avgfood`.
 
 ```{r}
 food_direct <- brm(weight ~ 1 + avgfood + groupsize, data = fox_dat,
@@ -214,17 +265,19 @@ food_direct <- brm(weight ~ 1 + avgfood + groupsize, data = fox_dat,
 summary(food_direct)
 ```
 
+### Q2.3 Interpret the multiple regression output
+
+Interpret the output of this model which looks at `weight ~ avgfood + groupsize`. 
+
+1.    What are the effects of `avgfood` and `groupsize` now that you have accounted for both variables?
+2.    How does this change your interpretation from the univariate regressions of each variable separately?
+3.    Provide a small discussion (2-4 sentences) of why you think these results turned out the way they did in the context of the ecological system of fox territories. Include why you think that the univariate regressions may have come out as un-informative.
+
+Some answers:
+
 Here we see that when we stratify by group size, we see a strong positive effect of food on weight. This indicates that within a given group size, more food is associated with more weight (heavier foxes). We also see a negative effect of group size: as the group size increases, the weight of individual foxes declines.
 
 Altogether, these results seem to suggest a masking effect, where one variable is cancelling out the effect of another. That is, as more food is available, more foxes move into the territory, increasing the group size. This continues until an equilibrium is reached where the amount of food available is equally good (or equally bad) within each territory. Thus, the total effect of food is negligible because as more food becomes available, the group size increases such that the amount of food available for each individual fox remains relatively stable.
-
---------------
-
-6H5.  Now infer the causal impact of group size. Which covariates do you need to adjust for? Looking at the posterior distribution of the resulting model, what do you think explains these data? That is, can you explain the estimates for all three problems? How do they go together?
-
-
-
-Next we estimate the direct effect. Here we see that when we stratify by group size, we see a strong positive effect of food on weight. This indicates that within a given group size, more food is associated with more weight.
 
 
 --------
