@@ -29,10 +29,6 @@ A reminder: **Please label the code** in your final submission in two ways:
 Let's start by reading in the relevant packages
 
 ```{r}
-# Run this to install some data packages
-# devtools::install_github("rmcelreath/rethinking")
-library(rethinking)
-
 library(brms) # for statistics
 library(tidyverse) # for data wrangling
 
@@ -98,7 +94,7 @@ For this section, we are going to implement what we learned about DAGs into an e
 
 ```{r}
 # Load in the fox data
-data(foxes)
+foxes <- read.csv('https://raw.githubusercontent.com/rmcelreath/rethinking/refs/heads/master/data/foxes.csv', sep = ';')
 ```
 
 
