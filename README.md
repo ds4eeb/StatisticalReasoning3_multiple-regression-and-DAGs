@@ -1,5 +1,5 @@
-Activity 11: Statistical reasoning 3: multiple regression and DAGs
-================
+# Activity 11: Statistical reasoning 3: multiple regression and DAGs
+
 
 Welcome! This is the third statistical reasoning activity. The goals of
 this activity are to understand how to implement DAGs in the context of
@@ -34,12 +34,17 @@ ways:
 Let’s start by reading in the relevant packages
 
 ``` r
-# Run this to install some data packages
-# devtools::install_github("rmcelreath/rethinking")
-library(rethinking)
-
 library(brms) # for statistics
 library(tidyverse) # for data wrangling
+
+# a function to scale and center. from rethinking package
+standardize <- function(x) {
+    x <- scale(x)
+    z <- as.numeric(x)
+    attr(z,"scaled:center") <- attr(x,"scaled:center")
+    attr(z,"scaled:scale") <- attr(x,"scaled:scale")
+    return(z)
+}
 ```
 
 # 1. DAG practice
@@ -120,12 +125,18 @@ package. Let’s load in the data:
 
 ``` r
 # Load in the fox data
-data(foxes)
+foxes <- read.csv('https://raw.githubusercontent.com/rmcelreath/rethinking/refs/heads/master/data/foxes.csv', sep = ';')
 ```
 
 ``` r
 # Check out the fox data
 ?foxes
+```
+
+    No documentation for 'foxes' in specified packages and libraries:
+    you could try '??foxes'
+
+``` r
 head(foxes)
 ```
 
@@ -182,7 +193,7 @@ fox_dat <- foxes %>%
 ```
 
 Simulate from some priors for a linear regression with intercept *alpha*
-and slope *beta*: *alpha* \~ Gaussian(0, 0.2), *beta* \~ Gaussian(0, 2)
+and slope *beta*: *alpha* ~ Gaussian(0, 0.2), *beta* ~ Gaussian(0, 2)
 
 ``` r
 n <- 1000
@@ -283,12 +294,12 @@ summary(food_on_area)
 
     Regression Coefficients:
               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    Intercept    -0.00      0.04    -0.08     0.09 1.00     8149     5893
-    area          0.88      0.04     0.79     0.96 1.00     7942     6347
+    Intercept    -0.00      0.04    -0.09     0.08 1.00     7588     5916
+    area          0.88      0.04     0.79     0.97 1.00     7137     5478
 
     Further Distributional Parameters:
           Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma     0.48      0.03     0.42     0.54 1.00     8250     5783
+    sigma     0.48      0.03     0.42     0.54 1.00     8061     5859
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -372,12 +383,12 @@ summary(group_on_weight)
 
     Regression Coefficients:
               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    Intercept    -0.00      0.08    -0.16     0.16 1.00     6963     5530
-    groupsize    -0.16      0.09    -0.33     0.02 1.00     8077     6248
+    Intercept    -0.00      0.08    -0.16     0.16 1.00     7636     5822
+    groupsize    -0.15      0.09    -0.33     0.02 1.00     7918     5474
 
     Further Distributional Parameters:
           Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma     1.00      0.07     0.88     1.14 1.00     7612     6116
+    sigma     1.00      0.07     0.88     1.14 1.00     8166     6280
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -411,27 +422,6 @@ food_direct <- brm(weight ~ 1 + avgfood + groupsize,
 
 summary(food_direct)
 ```
-
-     Family: gaussian 
-      Links: mu = identity 
-    Formula: weight ~ 1 + avgfood + groupsize 
-       Data: fox_dat (Number of observations: 116) 
-      Draws: 4 chains, each with iter = 4000; warmup = 2000; thin = 1;
-             total post-warmup draws = 8000
-
-    Regression Coefficients:
-              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    Intercept    -0.00      0.08    -0.16     0.15 1.00     6230     5224
-    avgfood       0.48      0.18     0.13     0.83 1.00     4213     4193
-    groupsize    -0.57      0.18    -0.93    -0.21 1.00     4223     3946
-
-    Further Distributional Parameters:
-          Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma     0.96      0.06     0.85     1.10 1.00     6224     5055
-
-    Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
-    and Tail_ESS are effective sample size measures, and Rhat is the potential
-    scale reduction factor on split chains (at convergence, Rhat = 1).
 
 ------------------------------------------------------------------------
 
